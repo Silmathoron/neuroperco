@@ -67,7 +67,7 @@ class Percolator(object):
         self._tau_s  = None
         # simulation parameters
         self._timestep = None
-        self._dv_step  = None
+        self._th_step  = None
         self._an_step  = None
         # update parameters if necessary
         if neuron_param is not None:
@@ -118,7 +118,7 @@ class Percolator(object):
         '''
         p = {
             "timestep": self._timestep,
-            "dv_step": self._dv_step,
+            "th_step": self._th_step,
             "active_neurons_step": self._an_step,
         }
         return p
@@ -272,7 +272,7 @@ class Percolator(object):
             # set the value if valid
             self._tau_s = tau_s
 
-    def set_param_simu(self, timestep=None, dv_step=None,
+    def set_param_simu(self, timestep=None, th_step=None,
                        active_neurons_step=None):
         '''
         Set the simulation parameters.
@@ -284,21 +284,21 @@ class Percolator(object):
         timestep : non-negative double 
             Timestep of the simulation. This must be a multiple of the total
             delay in the network (D = d + tau_m + tau_s).
-        dv_step : stricly positive double, optional (default: None)
+        th_step : stricly positive double, optional (default: None)
             Precision with which the response of the network to a given
             stimulation will be interpolated, depending on the neurons'
             potential. The neuron state is described by a potential $v$ which
             can vary between $v_{min} < 0$ and $\theta$ (the threshold). Before
             a run, we compute the percolation response for possible
             $dv = \theta - v$, between $k_{max} - v_{min}$ and $0$, with a step
-            `dv_step` ($k_{max} is the maximum in-degree in the network).
-            Increasing `dv_step` reduces the precision of the prediction but
+            `th_step` ($k_{max} is the maximum in-degree in the network).
+            Increasing `th_step` reduces the precision of the prediction but
             also increases speed and diminishes memory consumption.
         active_neurons_step : strictly positive int, optional (default: None)
             In addition to the percolation responses for possible $dv$, we also
             compute the response depending on how many neurons are active,
             between 0 and $N$ (the number of neurons in the network) with a
-            step `active_neurons_step`. As for `dv_step`, increasing it reduces
+            step `active_neurons_step`. As for `th_step`, increasing it reduces
             the precision but improves speed and reduces memory consumption.
         '''
         if self._prepared:
@@ -306,7 +306,7 @@ class Percolator(object):
                 "Cannot change parameters after `prepare` has been called.")
 
         if timestep is not None:
-            assert timestep >= 0, "`b` must be non-negative."
+            assert timestep >= 0, "`timestep` must be non-negative."
             tau_m = self._tau_m
             tau_s = self._tau_s
             try:
@@ -319,9 +319,9 @@ class Percolator(object):
                     "`timestep` must be a multiple of (d + tau_m + tau_s)."
             self._timestep = timestep
 
-        if dv_step is not None:
-            assert dv_step > 0, "`dv_step` must be strictly positive"
-            self._dv_step = dv_step
+        if th_step is not None:
+            assert th_step > 0, "`th_step` must be strictly positive"
+            self._th_step = th_step
 
         if active_neurons_step is not None:
             assert active_neurons_step > 0, \
@@ -332,6 +332,9 @@ class Percolator(object):
         '''
         Compute the percolation phase-space that will be used during the run.
         '''
+        compute_phase_space(
+            network=self._network, simu_param=self.simu_param,
+            neuron_param=self.neuron_param, axes_lim=None)
         self._prepare = True
 
     def run(self, duration):
