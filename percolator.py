@@ -30,6 +30,7 @@ import nngt
 
 from ._frozendict import _frozendict
 from ._nprc_log import _log_message
+from ._ps import PhaseSpace
 from ._tools import nonstring_container
 
 
@@ -103,6 +104,7 @@ class Percolator(object):
             "tau_th": self._tau_th,
             "tau_m": self._tau_m,
             "tau_s": self._tau_s,
+            "v_min": self._v_min,
         }
         return p
 
@@ -328,14 +330,47 @@ class Percolator(object):
                 "`active_neurons_step` must be strictly positive"
             self._an_step = active_neurons_step
 
-    def prepare(self):
+    def prepare(self, axes=('threshold', 'active_neurons'), axes_limits=None,
+                num_timesteps=1, num_trials=100, num_initially_active=None):
+        '''
+        Compute the phase space of the percolation phenomenon for a specific
+        network, neuron, and simulation parameters.
+
+        Parameters
+        ----------
+        axes : list, optional (default: ['threshold', 'active_neurons'])
+            Axes of phase-space along which the behavior will be tested. At
+            least one entry is required.
+        axes_limits : dict, optional (default: automatically computed)
+            Limits of the `axes`, e.g.
+            ``{'threshold': (0., 10.), 'active_neurons': (0, 100)}``.
+        num_timesteps : int, optional (default: 1)
+            Number of timesteps, i.e. of spike propagation and integrations,
+            that will be used to compute the final number of active neurons
+            after the percolation process.
+        num_trials : int, optional (default: 100)
+            Number of trials that will be performed for each point of
+            phase-space.
+        num_initially_active : int, optional (default: None)
+            Number of initially active neurons. Required when only the
+            threshold is varied.
+
+        Return
+        ------
+        ps : array of dimension len(axes)
+            Final number of active neurons after `num_timesteps`, for each
+            combination of the axes values.
+        '''
         '''
         Compute the percolation phase-space that will be used during the run.
         '''
-        compute_phase_space(
-            network=self._network, simu_param=self.simu_param,
-            neuron_param=self.neuron_param, axes_lim=None)
+        ps = PhaseSpace(network=self._network, simu_param=self.simu_param,
+                        neuron_param=self.neuron_param)
+        self._ps = ps.compute_phase_space(
+            axes=axes, axes_limits=axes_limits, num_timesteps=num_timesteps,
+            num_trials=num_trials, num_initially_active=num_initially_active)
         self._prepare = True
+        return np.array(self._ps)
 
     def run(self, duration):
         '''

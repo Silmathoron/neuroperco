@@ -27,10 +27,11 @@ import logging
 
 from .percolator import Percolator
 from ._nprc_log import _log_message
+from ._ps import PhaseSpace
 
 
 __version__ = "0.1.0"
 
 _logger = logging.getLogger(__name__)
 
-
+__all__ = ["Percolator", "PhaseSpace"]
