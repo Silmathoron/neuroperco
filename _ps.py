@@ -103,9 +103,9 @@ class PhaseSpace(object):
                 "`simu_params`."
             an_min, an_max = axes_limits.get(
                 "active_neurons", [0, self.network.node_nb()])
-            num_an_steps = (an_max - an_min) / self.an_step
             axes_values['active_neurons'] = np.arange(
                 an_min, an_max + self.an_step, self.an_step, dtype=int)
+            num_an_steps = len(axes_values['active_neurons'])
             dimensions.append(num_an_steps)
             axes_size[axes.index('active_neurons')] = num_an_steps
 
@@ -115,9 +115,9 @@ class PhaseSpace(object):
             k_max = np.max(network.get_degrees('in'))
             s_max = np.max(network.get_weights())
             th_min, th_max = axes_limits.get("threshold", [0, k_max*s_max])
-            num_th_steps = (th_max - th_min) / self.th_step
             axes_values['threshold'] = np.arange(
                 th_min, th_max + self.th_step, self.th_step)
+            num_th_steps = len(axes_values)
             dimensions.append(num_th_steps)
             axes_size[axes.index('threshold')] = num_th_steps
             # if only threshold in axes, check that `active_neurons` is defined
@@ -126,7 +126,7 @@ class PhaseSpace(object):
                     "`num_initially_active` must  be provided as a default " +\
                     "value when varying only `threshold`."
 
-        ps = np.zeros(dimension)
+        ps = np.zeros(dimensions)
 
         # compute phase space
         if len(axes) == 2:
@@ -150,8 +150,9 @@ class PhaseSpace(object):
                     ps[i] += self.percolation(
                         num_timesteps, threshold=th,
                         num_initially_active=num_initially_active)
+        ps /= num_trials
 
-        return ps
+        return axes_values, ps
 
     def percolation(self, num_timesteps, num_initially_active, threshold=None,
                     show=False):
@@ -198,13 +199,12 @@ class PhaseSpace(object):
 
         # run the percolation event
         while t < num_timesteps:
-            print(len(active))
             new_active = []
             while active:
                 # get first active neuron
                 n = active.popleft()
                 # get neighbours and edges
-                nn    = np.array(self.network.neighbours(n, "out"), dtype=int)
+                nn    = list(self.network.neighbours(n, "out"))
                 edges = np.array((np.repeat(n, len(nn)), nn), dtype=int).T
                 # update neuronal properties
                 v_m[nn] += self.network.get_weights(edges)
@@ -217,8 +217,6 @@ class PhaseSpace(object):
             active.extend(new_active)  # add new active neurons
             self.network.set_node_attribute(
                 "activation_time", val=t, nodes=new_active)
-
-        print("percolation done")
 
         if show:
             from nngt.plot import draw_network
